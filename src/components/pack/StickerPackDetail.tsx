@@ -204,32 +204,32 @@ const StickerPackDetailComponent: React.FunctionComponent = () => {
     // If an error code has been set, display an error alert to the user.
     if (stickerPackError) {
       switch (stickerPackError) {
-      case 'NO_KEY_PROVIDED':
-        return (
-          <StickerPackError>
-            <p>
-              This sticker pack is not listed in the Signal Stickers directory.
-              However, if you have the pack's <strong>key</strong>, you can
-              still preview the sticker pack by supplying a <code>key</code>
-              parameter in the URL.
-            </p>
-            <p>
-              For example: <code>{`/pack/${packId}?key=sticker-pack-key`}</code>
-            </p>
-          </StickerPackError>
-        );
-      case 'MANIFEST_DECRYPT':
-        return (
-          <StickerPackError>
-            <p>The provided key is invalid.</p>
-          </StickerPackError>
-        );
-      default:
-        return (
-          <StickerPackError>
-            <p>An unknown error occurred ({stickerPackError}).</p>
-          </StickerPackError>
-        );
+        case 'NO_KEY_PROVIDED':
+          return (
+            <StickerPackError>
+              <p>
+                This sticker pack is not listed in the Signal Stickers directory.
+                However, if you have the pack's <strong>key</strong>, you can
+                still preview the sticker pack by supplying a <code>key</code>
+                parameter in the URL.
+              </p>
+              <p>
+                For example: <code>{`/pack/${packId}?key=sticker-pack-key`}</code>
+              </p>
+            </StickerPackError>
+          );
+        case 'MANIFEST_DECRYPT':
+          return (
+            <StickerPackError>
+              <p>The provided key is invalid.</p>
+            </StickerPackError>
+          );
+        default:
+          return (
+            <StickerPackError>
+              <p>An unknown error occurred ({stickerPackError}).</p>
+            </StickerPackError>
+          );
       }
     }
 

@@ -4,6 +4,8 @@
     "baseUrl": ".",
     "jsx": "react",
     "lib": ["DOM", "es2020"],
-    "paths": {"*": ["*", "src/*"]}
+    "paths": {"*": ["*", "src/*"]},
+    "skipLibCheck": true,
+    "downlevelIteration": true
   }
 }

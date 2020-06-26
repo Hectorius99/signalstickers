@@ -66,9 +66,11 @@ export const Provider = (props: PropsWithChildren<Record<string, unknown>>) => {
       collection: stickerPacks,
       identity: pack => pack.meta.id,
       keys: {
-        tag: 'meta.tags',
-        author: 'manifest.author',
-        title: 'manifest.title'
+        title: ['manifest', 'title'],
+        author: ['manifest', 'author'],
+        tag: ['meta', 'tags'],
+        nsfw: ['meta', 'nsfw'],
+        original: ['meta', 'original']
       }
     }));
   }, []);

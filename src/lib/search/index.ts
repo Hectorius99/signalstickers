@@ -4,8 +4,7 @@
  * This module provides a fuzzy searching facility that supports broad as well
  * as targeted queries. It must be configured with a collection of
  * uniformly-shaped objects. These objects should contain at least 1 key that
- * may be used to uniquely identify them. Any attributes of member objects that
- * will be searched on must be strings or arrays of strings.
+ * may be used to uniquely identify them.
  *
  * Query Grammar
  * -------------
@@ -71,17 +70,18 @@ export interface SearchFactoryOptions<T> {
   identity: (item: T) => string | number | boolean | undefined;
 
   /**
-   * Mapping of attribute names (used in search queries) to strings representing
-   * dot-delimited paths where that attribute can be found in each item in the
-   * collection. This mapping is used when performing attribute queries, and
-   * all attributes are included when performing general queries.
+   * Mapping of attribute shorthand terms (used in search queries) to arrays
+   * representing paths where that attribute can be found in each item in the
+   * collection. Single mappings are used for attribute queries, and all
+   * attributes are included when performing general queries.
    *
    * See: https://fusejs.io/examples.html#nested-search
    */
   keys: {
-    [key: string]: Fuse.FuseOptionKeyObject | string;
+    [key: string]: Fuse.FuseOptionKey;
   };
 }
+
 
 /**
  * Object returned by SearchFactory.
@@ -145,6 +145,43 @@ export default function SearchFactory<T>(options: SearchFactoryOptions<T>): Sear
   /**
    * @private
    *
+   * Custom Fuse.js "getter" function that will be invoked when traversing paths
+   * in collection members. The function is responsible for returning the value
+   * at the indicated path which, per Fuse requirements, must be a string or an
+   * array of strings. By using a custom function, we can type-cast non-string
+   * values to strings for the purposes of matching search results. This will
+   * allow the user to use attribute queries such as 'original:true' or
+   * 'nsfw:false'.
+   */
+  const customGetFn = (item: T, path: string | Array<string>) => {
+    const value = R.path(Array.isArray(path) ? path : R.split('.', path), item);
+    const valueType = R.type(value);
+
+    switch (valueType) {
+      case 'String':
+        return String(value);
+      case 'Array':
+        return value as Array<string>;
+      // Cast booleans and numbers using the String constructor, yielding
+      // results like 'true', 'false'.
+      case 'Boolean':
+      case 'Number':
+        return String(value);
+      // For bottom values, return 'false'. This allows queries on attributes
+      // where the absence of that attribute implies `false`, such as 'nsfw' and
+      // 'original'.
+      case 'Null':
+      case 'Undefined':
+        return 'false';
+      default:
+        throw new Error(`[Search::getFn] Unable to parse value of type "${valueType}" at path "${path}".`);
+    }
+  };
+
+
+  /**
+   * @private
+   *
    * Provided a string, returns the number of words therein.
    */
   const wordCount = (input: string): number => input.split(/\s+/g).length;
@@ -176,14 +213,14 @@ export default function SearchFactory<T>(options: SearchFactoryOptions<T>): Sear
     R.forEach(([attribute, path]) => {
       searchers.set(attribute, new Fuse(collection, {
         ...BASE_CONFIG,
-        // @ts-ignore (`keys` in Fuse.js is mis-typed)
+        getFn: customGetFn,
         keys: [path]
       }));
     }, R.toPairs(options.keys ?? []));
 
     searchers.set(GENERAL_SEARCHER, new Fuse(collection, {
       ...BASE_CONFIG,
-      // @ts-ignore (`keys` in Fuse.js is mis-typed)
+      getFn: customGetFn,
       keys: R.values(options.keys)
     }));
   };
@@ -267,8 +304,6 @@ export default function SearchFactory<T>(options: SearchFactoryOptions<T>): Sear
       const searcherForAttribute = searchers.get(attribute);
 
       if (!searcherForAttribute) {
-        console.warn(`[Search::search] Unable to find a searcher for attribute: "${attribute}".`);
-        console.debug('[Search::search] Here are the searchers:', searchers);
         return;
       }
 
